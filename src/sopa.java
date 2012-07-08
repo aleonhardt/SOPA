@@ -21,6 +21,7 @@ import javax.swing.*;
 
 public class sopa
   {
+	
   public static void main(String args[])
     {
     // The program models a complete computer with most HW components
@@ -274,12 +275,14 @@ class IntController
 class Memory
   {
   // This is the memory system component. 
+	 public static final int SEGMENT_SIZE = 128;
   private IntController hint;
   private int[] memoryWord;
   private int memorySize;
   // MMU: base and limit registers
   private int limitRegister;            // specified in logical addresses
   private int baseRegister;             // add base to get physical address
+  private int [] memorySegments;
   // constructor
   public Memory(IntController i,int s)
     {
@@ -289,6 +292,8 @@ class Memory
     memoryWord = new int[s];
     // Initialize with the dummy program
     init(0,'J','P','A',0);
+    limitRegister=SEGMENT_SIZE;//partições com 128 palavras
+    memorySegments = new int[8];
     }
   // Access methods for the MMU: these are accessed by the kernel.
   // They do not check memory limits. It is interpreted as kernel's
@@ -319,6 +324,19 @@ class Memory
     else
       return memoryWord[baseRegister + address];
     }
+  
+  public synchronized int supervisorRead(int address)
+  {
+    if(address+baseRegister>memorySize)
+    {
+    	hint.set(3); //endereço superior ao tamanho da memória
+    	return 0;
+    }
+    else
+	  return memoryWord[baseRegister + address];
+  }
+
+  
   public synchronized void write(int address, int data)
     {
     if (address >= limitRegister)
@@ -326,7 +344,30 @@ class Memory
     else
       memoryWord[baseRegister + address] = data;
     }
+  public synchronized void supervisorWrite(int address, int data)
+  {
+	  if(address+baseRegister>memorySize)
+	    {
+	    	hint.set(3); //endereço superior ao tamanho da memória
+	    }
+    memoryWord[baseRegister + address] = data;
   }
+public int getFreeSegment() {
+	for(int i=0; i<memorySegments.length; i++)
+	{
+		if(memorySegments[i]==0)
+		{
+			memorySegments[i]=-1;//marca como usado
+			return i;	//retorna o segmento encontrado
+		}
+	}
+	return -1;//nenhum segmento livre
+	}
+public void freeMemorySegment(int segment){
+	if(segment>=0 && segment<8)
+		memorySegments[segment]=0; //libera o segmento para ser usado denovo
+	}
+}
 
 class Timer extends Thread
   {
@@ -371,7 +412,7 @@ class Timer extends Thread
 
 class Disk extends Thread
   {
-  // Our disc component has a semaphore to implemente its dependency on
+  // Our disc component has a semaphore to implement its dependency on
   // a call from the processor. The semaphore is private, and we offer 
   // a method roda that unlocks it. Does it need to be synchronized???
   // It needs a semaphore to avoid busy waiting, but...
@@ -389,7 +430,7 @@ class Disk extends Thread
   private int readSize;
   private int operation;
   private int errorCode;
-  // and some codes to get the meaning of the intterface
+  // and some codes to get the meaning of the interface
   // you can use the codes inside the kernel, like: dis.OPERATION_READ
   public final int OPERATION_READ = 0;
   public final int OPERATION_WRITE = 1;
@@ -566,7 +607,8 @@ class Processor extends Thread
       // sleep a tenth of a second
       synch.mysleep(2);
       // read from memory in the address indicated by PC
-      int RD = mem.read(PC++);
+      int RD = mem.read(PC);
+      PC++;
       // break the 32bit word into 4 separate bytes
       IR[0] = RD>>>24;
       IR[1] = (RD>>>16) & 255;
@@ -586,6 +628,7 @@ class Processor extends Thread
         {
         // Call the kernel passing the interrupt number
         kernel.run(thisInt);
+        
         // Kernel handled the last interrupt
         hint.reset(thisInt);
 	}
@@ -683,7 +726,8 @@ class Processor extends Thread
 
 class Kernel
   {
-  // Access to hardware components, including the processor
+
+// Access to hardware components, including the processor
   private IntController hint;
   private Memory mem;
   private ConsoleListener con;
@@ -706,9 +750,14 @@ class Kernel
     readyList = new ProcessList ("Ready");
     diskList = new ProcessList ("Disk");
     // Creates the dummy process
-    readyList.pushBack( new ProcessDescriptor(0) );
-    readyList.getBack().setPC(0);
+    int segmento = mem.getFreeSegment();
+    if(segmento>=0)//se é válido
+    {
+    	readyList.pushBack( new ProcessDescriptor(0, segmento) );
+    	readyList.getBack().setPC(0);
     }
+ 
+   }
   // Each time the kernel runs it have access to all hardware components
   public void run(int interruptNumber)
     {
@@ -748,6 +797,7 @@ class Kernel
     // restore context
     pro.setPC(readyList.getFront().getPC());
     pro.setReg(readyList.getFront().getReg());
+    mem.setBaseRegister(readyList.getFront().getMemorySegment()*Memory.SEGMENT_SIZE);
     }
   }
 
@@ -756,19 +806,28 @@ class ProcessDescriptor
   private int PID;
   private int PC;
   private int[] reg;
+  private int memorySegment;
   private ProcessDescriptor next;
   public int getPID() { return PID; }
-  public int getPC() { return PC; }
+  public int getMemorySegment() {
+	return memorySegment;
+}
+  public void setMemorySegment(int memSegment)
+  {
+	  this.memorySegment=memSegment;	  
+  }
+public int getPC() { return PC; }
   public void setPC(int i) { PC = i; }
   public int[] getReg() { return reg; }
   public void setReg(int[] r) { reg = r; }
   public ProcessDescriptor getNext() { return next; }
   public void setNext(ProcessDescriptor n) { next = n; }
-  public ProcessDescriptor(int pid) 
+  public ProcessDescriptor(int pid, int memorySegment) //quando for criar um processo novo, tem que ver um segmento vazio
     {
     PID = pid;
     PC = 0;
     reg = new int[16];
+    this.memorySegment=memorySegment;
     }
   
   }
