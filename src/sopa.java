@@ -47,10 +47,13 @@ public class sopa
     ConsoleListener c = mw.getListener();
     c.setInterruptController(i);
     c.setGlobalSynch(gs);
+    GraphicProcess graphicWindow = new GraphicProcess();
+   	graphicWindow.initGraphicProcessWindow(graphicWindow);
     Memory m	= new Memory(i,1024);
     Timer t	= new Timer(i,gs);
     Disk d	= new Disk(i,gs,m,1024,"disk.txt");
-    Processor p	= new Processor(i,gs,m,c,t,d);
+    Processor p	= new Processor(i,gs,m,c,t,d, graphicWindow);
+   
     // start all threads
     p.start();
     t.start();
@@ -608,7 +611,7 @@ class Processor extends Thread
   // Kernel is like a software in ROM
   private Kernel kernel;
   public Processor(IntController i, GlobalSynch gs, Memory m, ConsoleListener c, 
-                  Timer t, Disk d)
+                  Timer t, Disk d, GraphicProcess graphicWindow)
     {
     hint = i;
     synch = gs;
@@ -620,7 +623,7 @@ class Processor extends Thread
     IR = new int[4];
     reg = new int[16];
     flag = new int[3];
-    kernel = new Kernel(i,m,c,t,d,this);
+    kernel = new Kernel(i,m,c,t,d,this, graphicWindow);
     }
   public void run()
     {
@@ -748,11 +751,12 @@ class Processor extends Thread
 
 class Kernel
   {
-
+int timeOnDisk =0;
 // Access to hardware components, including the processor
   private IntController hint;
   private Memory mem;
   private ConsoleListener con;
+  private GraphicProcess graphicWindow;
   private Timer tim;
   private Disk dis;
   private Processor pro;
@@ -761,7 +765,7 @@ class Kernel
   private ProcessList diskList;
   // In the constructor goes initialization code
   public Kernel(IntController i, Memory m, ConsoleListener c, 
-                Timer t, Disk d, Processor p)
+                Timer t, Disk d, Processor p, GraphicProcess graphicWindow)
     {
     hint = i;
     mem = m;
@@ -771,6 +775,7 @@ class Kernel
     pro = p;
     readyList = new ProcessList ("Ready");
     diskList = new ProcessList ("Disk");
+    this.graphicWindow=graphicWindow;
     // Creates the dummy process
     int segment = mem.getFreeSegment();
     if(segment>=0)//se é válido
@@ -802,6 +807,10 @@ class Kernel
       aux = readyList.popFront();
       readyList.pushBack(aux);
       System.err.println("CPU now runs: "+readyList.getFront().getPID());
+      graphicWindow.processLostCPU(aux.getPID());
+     
+      if(diskList.getFront()!=null)
+    	  timeOnDisk++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
       //creates new process (dummy):
       //createDummy();
             
@@ -813,6 +822,8 @@ class Kernel
     case 5: // HW INT disk 
       aux = diskList.popFront();
       readyList.pushBack(aux);
+      graphicWindow.processDoneDisk(aux.getPID(), timeOnDisk);
+      timeOnDisk=0;
       break;
     case 15: // HW INT console
 

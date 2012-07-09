@@ -123,7 +123,7 @@ public class GraphicProcess extends JPanel {
 		Rectangle maxBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
 		frame.setSize(maxBounds.width, 200); //maximiza na horizontal
 		
-		frame.setLayout(new GridLayout(1, 0));
+		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 	}
 
