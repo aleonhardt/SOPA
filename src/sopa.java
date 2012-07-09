@@ -780,7 +780,7 @@ int timeOnDisk =0;
     diskList = new ProcessList ("Disk");
     this.graphicWindow=graphicWindow;
     // Creates the dummy process
-    int segment = mem.getFreeSegment();
+    int segment = 0;
     if(segment>=0)//se é válido
     {
     	readyList.pushBack( new ProcessDescriptor(0, segment) );
@@ -815,12 +815,12 @@ int timeOnDisk =0;
       if(diskList.getFront()!=null)
     	  timeOnDisk++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
       //creates new process (dummy):
-      //createDummy();
+      createDummy();
             
       break;
     case 3: //acesso ilegal a memória
     	aux = readyList.popFront(); //mata o processo
-    	System.out.println("Process"+ aux.getPID() +"killed for illegal memory access");
+    	System.out.println("Process "+ aux.getPID() +" killed for illegal memory access, pc="+aux.getPC());
     	break;
     case 5: // HW INT disk 
       aux = diskList.popFront();
