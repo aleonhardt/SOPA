@@ -305,10 +305,7 @@ class Memory
   // tries to access an address which is out of its logical space.
   public void setLimitRegister(int val) { limitRegister = val; };
   public void setBaseRegister(int val) { baseRegister = val; };
-  // Here goes some specifi methods for the kernel to access memory
-  // bypassing the MMU (do not add base register or test limits)
-  public int superRead(int address) { return memoryWord[address]; }
-  public void superWrite(int address, int data) { memoryWord[address] = data; }
+  
   // Access methods for the Memory itself
   public synchronized void init(int add, int a, int b, int c, int d)
     {
@@ -376,6 +373,9 @@ public void freeMemorySegment(int segment){
 	if(segment>=0 && segment<8)
 		memorySegments[segment]=0; //libera o segmento para ser usado denovo
 	}
+public int getBaseRegister() {
+	return baseRegister;
+}
 }
 
 class Timer extends Thread
@@ -439,6 +439,7 @@ class Disk extends Thread
   private int readSize;
   private int operation;
   private int errorCode;
+  private int memorySegment; //used for dma
   // and some codes to get the meaning of the interface
   // you can use the codes inside the kernel, like: dis.OPERATION_READ
   public final int OPERATION_READ = 0;
@@ -467,9 +468,11 @@ class Disk extends Thread
 		
   // Methods that the kernel (in CPU) should call: "roda" activates the disk
   // The last parameter, data, is only for the 'write' operation
-  public void roda(int op, int add, int data)
+  //memory segment used for DMA operations
+  public void roda(int op, int address, int data, int memorySegment)
     {
-    address = add;
+	this.memorySegment = memorySegment;
+    this.address = address;
     writeData = data;
     readSize = 0;
     operation = op;
@@ -521,7 +524,7 @@ class Disk extends Thread
           int bufferIndex = 0;
           while (diskImage[diskIndex] != END_OF_FILE)
             {
-            System.err.println(".");
+            System.out.println(".");
             readData[bufferIndex] = diskImage[diskIndex];
             ++diskIndex;
             ++bufferIndex;
@@ -532,6 +535,7 @@ class Disk extends Thread
               }
             }
           readSize = bufferIndex;
+          directMemoryAccess(memorySegment);
           break;
           }
 	}		
@@ -539,7 +543,16 @@ class Disk extends Thread
       hint.set(5);
       }
     }
-		
+	
+  private void directMemoryAccess(int segment)//puts what is in the readData[] directly inside the memory
+  {
+	 int baseRegiser = mem.getBaseRegister();//saves the pointer to the segment
+	  mem.setBaseRegister(segment*Memory.SEGMENT_SIZE); 
+	  for (int i=0; i<readSize; i++)
+		  mem.supervisorWrite(0, readData[i]);
+	  System.out.println("DMA");
+	  mem.setBaseRegister(baseRegiser);//restores pointer to the segment
+  }
   // this is to read disk initial image from a hosted text file
   private void load(String filename) throws IOException
     {
@@ -766,9 +779,8 @@ class Kernel
     	readyList.getBack().setPC(0);
     }
     
-    //teste MMU
-  // mem.setBaseRegister(0);
-   //mem.setLimitRegister(3);
+    
+ 
    }
   // Each time the kernel runs it have access to all hardware components
   public void run(int interruptNumber)
@@ -797,11 +809,16 @@ class Kernel
       break;
     case 15: // HW INT console
       System.err.println("Operator typed " + con.getLine());
+      if(con.getLine().equals("load"))
+      {
+    	  dis.roda(dis.OPERATION_LOAD, 0, 0, 1);
+      }
+      
       break;
     case 36: // SW INT read
       aux = readyList.popFront();
       diskList.pushBack(aux);
-      dis.roda(0,0,0);
+      dis.roda(dis.OPERATION_READ,0,0,0);
       break;
     default:
       System.err.println("Unknown...");
