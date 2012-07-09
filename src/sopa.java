@@ -790,9 +790,8 @@ class Kernel
       aux = readyList.popFront();
       readyList.pushBack(aux);
       System.err.println("CPU now runs: "+readyList.getFront().getPID());
-      
       //creates new process (dummy):
-      createDummy();
+      //createDummy();
             
       break;
     case 5: // HW INT disk 
@@ -800,7 +799,14 @@ class Kernel
       readyList.pushBack(aux);
       break;
     case 15: // HW INT console
-      System.err.println("Operator typed " + con.getLine());
+      System.out.println("Operator typed " + con.getLine());
+      
+      String stringSplitter[] = con.getLine().split(" ");
+      int whichDisk = Integer.parseInt(stringSplitter[0]);
+      int startingAddress = Integer.parseInt(stringSplitter[1]);
+      dis.roda(2, startingAddress, 0); //OPERATION_LOAD = 2
+            
+      
       break;
     case 36: // SW INT read
       aux = readyList.popFront();
