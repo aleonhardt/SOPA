@@ -353,7 +353,7 @@ class Memory
     memoryWord[baseRegister + address] = data;
   }
 public int getFreeSegment() {
-	for(int i=0; i<memorySegments.length; i++)
+	for(int i=2; i<memorySegments.length; i++)//as duas primeiras partições são para o kernel
 	{
 		if(memorySegments[i]==0)
 		{
@@ -363,6 +363,15 @@ public int getFreeSegment() {
 	}
 	return -1;//nenhum segmento livre
 	}
+public boolean getSegment(int i){
+	if(memorySegments[i]==0)
+	{
+		memorySegments[i]=-1;//marca como usado
+		return true; //conseguiu o segmento
+	}
+	else
+		return false;//segmento já está usado
+}
 public void freeMemorySegment(int segment){
 	if(segment>=0 && segment<8)
 		memorySegments[segment]=0; //libera o segmento para ser usado denovo
@@ -756,7 +765,10 @@ class Kernel
     	readyList.pushBack( new ProcessDescriptor(0, segment) );
     	readyList.getBack().setPC(0);
     }
- 
+    
+    //teste MMU
+  // mem.setBaseRegister(0);
+   //mem.setLimitRegister(3);
    }
   // Each time the kernel runs it have access to all hardware components
   public void run(int interruptNumber)
