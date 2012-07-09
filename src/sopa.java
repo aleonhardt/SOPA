@@ -275,7 +275,7 @@ class IntController
 class Memory
   {
   // This is the memory system component. 
-	 public static final int SEGMENT_SIZE = 128;
+  public static final int SEGMENT_SIZE = 128;
   private IntController hint;
   private int[] memoryWord;
   private int memorySize;
@@ -750,10 +750,10 @@ class Kernel
     readyList = new ProcessList ("Ready");
     diskList = new ProcessList ("Disk");
     // Creates the dummy process
-    int segmento = mem.getFreeSegment();
-    if(segmento>=0)//se é válido
+    int segment = mem.getFreeSegment();
+    if(segment>=0)//se é válido
     {
-    	readyList.pushBack( new ProcessDescriptor(0, segmento) );
+    	readyList.pushBack( new ProcessDescriptor(0, segment) );
     	readyList.getBack().setPC(0);
     }
  
@@ -778,6 +778,10 @@ class Kernel
       aux = readyList.popFront();
       readyList.pushBack(aux);
       System.err.println("CPU now runs: "+readyList.getFront().getPID());
+      
+      //creates new process (dummy):
+      createDummy();
+            
       break;
     case 5: // HW INT disk 
       aux = diskList.popFront();
@@ -799,6 +803,25 @@ class Kernel
     pro.setReg(readyList.getFront().getReg());
     mem.setBaseRegister(readyList.getFront().getMemorySegment()*Memory.SEGMENT_SIZE);
     }
+  
+  int dummyCounter=1;
+  public void createDummy() {
+      int segment = mem.getFreeSegment();
+      if(segment >= 0)
+      {
+    	  ProcessDescriptor proc = new ProcessDescriptor( dummyCounter, segment);
+    	  dummyCounter++;
+    	  readyList.pushBack(proc);
+    	  mem.init(segment*Memory.SEGMENT_SIZE,'J', 'P', 'A', 0);
+    	  System.out.println("New Process, hooray!");
+      }
+      else
+      {
+    	  System.out.println("No available segments");
+      }
+  }
+  
+  
   }
 
 class ProcessDescriptor
@@ -816,7 +839,7 @@ class ProcessDescriptor
   {
 	  this.memorySegment=memSegment;	  
   }
-public int getPC() { return PC; }
+  public int getPC() { return PC; }
   public void setPC(int i) { PC = i; }
   public int[] getReg() { return reg; }
   public void setReg(int[] r) { reg = r; }
