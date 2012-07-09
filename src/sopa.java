@@ -742,7 +742,7 @@ class Processor extends Thread
       kernel.run(IR[3]);
       }
     else
-      System.err.println(" [? ? ? ?] ");
+      System.err.println(" [? ? ? ?] "); //instrução ilegal
     }
   }
 
@@ -809,6 +809,10 @@ class Kernel
       //createDummy();
             
       break;
+    case 3: //acesso ilegal a memória
+    	aux = readyList.popFront(); //mata o processo
+    	System.out.println("Process"+ aux.getPID() +"killed for illegal memory access");
+    	break;
     case 5: // HW INT disk 
       aux = diskList.popFront();
       readyList.pushBack(aux);
