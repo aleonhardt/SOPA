@@ -348,8 +348,8 @@ class Memory
 	}
 	public synchronized void supervisorWrite(int address, int data)
 	{
-	  
-	   if(address+baseRegister>memorySize)
+
+		if(address+baseRegister>memorySize)
 		{
 			hint.set(3); //endereço superior ao tamanho da memória
 		}
@@ -407,7 +407,7 @@ class Timer extends Thread
 	{
 		while (true)
 		{
-			
+
 			synch.mysleep(2);
 			System.err.println("timer INT");
 			hint.set(2);
@@ -481,7 +481,7 @@ class Disk extends Thread
 	public int getError() { return errorCode; }
 	public int getSize() { return readSize; }
 	public int getData(int buffer_position) { return readData[buffer_position]; }
-  public int getDiskSize() {return diskSize; }	
+	public int getDiskSize() {return diskSize; }	
 	// The thread that is the disk itself
 	public void run()
 	{
@@ -491,7 +491,7 @@ class Disk extends Thread
 			// wait for some request comming from the processor
 			sem.P();
 			// Processor requested: now I have something to do...
-			for (int i=0; i < 30; ++i) //disco demora tempo de 30 instruções para responder
+			for (int i=0; i < 50; ++i) //disco demora tempo de 30 instruções para responder
 			{
 				// sleep just one quantum which is one disc turn here
 				synch.mysleep(1);
@@ -547,13 +547,13 @@ class Disk extends Thread
 
 	private void directMemoryAccess(int segment)//puts what is in the readData[] directly inside the memory
 	{
-	 int baseRegister = mem.getBaseRegister();//saves the pointer to the segment
+		int baseRegister = mem.getBaseRegister();//saves the pointer to the segment
 		mem.setBaseRegister(segment*Memory.SEGMENT_SIZE); 
 		for (int i=0; i<readSize; i++)
-		  mem.supervisorWrite(i, readData[i]);
+			mem.supervisorWrite(i, readData[i]);
 		System.out.println("DMA");
-		
-	  mem.setBaseRegister(baseRegister);//restores pointer to the segment
+
+		mem.setBaseRegister(baseRegister);//restores pointer to the segment
 	}
 	// this is to read disk initial image from a hosted text file
 	private void load(String filename) throws IOException
@@ -829,8 +829,8 @@ class Kernel
 			}
 			else
 				aux.setTimeSlice(aux.getTimeSlice()-1);
-			
-			
+
+
 			//creates new process (dummy):
 			//createDummy();
 
@@ -855,13 +855,27 @@ class Kernel
 			timeOnDiskOne=0;
 
 			if(aux.getMemoryOperation()==dis[1].OPERATION_READ){
-				aux.getReg()[0]=dis[1].getData(0); //coloca o dado lido no reg0
-				aux.getReg()[1]=0; //por enquanto dá sempre tudo certo
-				System.out.println("read: "+aux.getReg()[0]);
+				if(dis[1].getError()==dis[1].ERRORCODE_SUCCESS){
+					aux.getReg()[0]=dis[1].getData(0); //coloca o dado lido no reg0
+					aux.getReg()[1]=0; //tudo certo
+					System.out.println("read: "+aux.getReg()[0]);
+				}
+				else{
+					aux.getReg()[1]=1;
+					aux.getReg()[0]=dis[1].getError(); //indica qual o erro
+				}
 			}
 
 			if(aux.getMemoryOperation()==dis[1].OPERATION_WRITE){
-				aux.getReg()[0]=0; 	 //por enquanto dá sempre tudo certo
+				if(dis[1].getError()==dis[1].ERRORCODE_SUCCESS){
+					aux.getReg()[1]=0; 	 // tudo certo
+					System.out.println("PUT success");
+				}
+				else
+				{
+					aux.getReg()[1]=1;
+					aux.getReg()[0]=dis[1].getError(); //indica qual o erro
+				}
 			}
 
 
@@ -883,7 +897,7 @@ class Kernel
 
 			}
 			break;
-			
+
 		case 6: // HW INT disk 
 			System.out.println("disk2 INT");
 			aux = diskList[2].popFront();
@@ -893,13 +907,27 @@ class Kernel
 			timeOnDiskTwo=0;
 
 			if(aux.getMemoryOperation()==dis[2].OPERATION_READ){
-				aux.getReg()[0]=dis[2].getData(0); //coloca o dado lido no reg0
-				aux.getReg()[1]=0; //por enquanto dá sempre tudo certo
-				System.out.println("read: "+aux.getReg()[0]);
+				if(dis[2].getError()==dis[2].ERRORCODE_SUCCESS){
+					aux.getReg()[0]=dis[2].getData(0); //coloca o dado lido no reg0
+					aux.getReg()[1]=0; // tudo certo
+					System.out.println("read: "+aux.getReg()[0]);
+				}
+				else
+				{
+					aux.getReg()[1]=1;
+					aux.getReg()[0]=dis[2].getError(); //indica qual o erro
+				}
 			}
 
 			if(aux.getMemoryOperation()==dis[2].OPERATION_WRITE){
-				aux.getReg()[0]=0; 	 //por enquanto dá sempre tudo certo
+				if(dis[2].getError()==dis[2].ERRORCODE_SUCCESS){
+					aux.getReg()[0]=0; 	 // tudo certo
+				}
+				else
+				{
+					aux.getReg()[1]=1;
+					aux.getReg()[0]=dis[2].getError(); //indica qual o erro
+				}
 			}
 
 
@@ -923,37 +951,32 @@ class Kernel
 			break;
 
 
-	   
-
-
-
-
 
 
 
 		case 15: // HW INT console
 
 			//System.err.println("Operator typed " + con.getLine());
-		  String stringSplitter[] = con.getLine().split(" ");
-		  int startingAddress = -1;
-	      int whichDisk = 0;
-	
-	      if (stringSplitter[0] != null)
-	      {
-	    	  whichDisk = Integer.parseInt(stringSplitter[0]);  
-	      }
-	      if (stringSplitter.length>1 && stringSplitter[1] != null)
-	      {
-	    	  startingAddress = Integer.parseInt(stringSplitter[1]);
-	      }
-	       
-	      if(startingAddress >= 0 && startingAddress <= dis[whichDisk].getDiskSize())
+			String stringSplitter[] = con.getLine().split(" ");
+			int startingAddress = -1;
+			int whichDisk = 0;
+
+			if (stringSplitter[0] != null)
+			{
+				whichDisk = Integer.parseInt(stringSplitter[0]);  
+			}
+			if (stringSplitter.length>1 && stringSplitter[1] != null)
+			{
+				startingAddress = Integer.parseInt(stringSplitter[1]);
+			}
+
+			if(startingAddress >= 0 && startingAddress <= dis[whichDisk].getDiskSize())
 			{
 				int memorySegment = mem.getFreeSegment();
 				if(memorySegment >= 2 && memorySegment <= 7) 
 				{
-	    	  System.out.println("Creating new process: PID: " + PIDCounter + " Memory Segment: " + memorySegment);
-    		  ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment, TIME_SLICE);
+					System.out.println("Creating new process: PID: " + PIDCounter + " Memory Segment: " + memorySegment);
+					ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment, TIME_SLICE);
 					this.PIDCounter++;
 
 					if (diskList[whichDisk].getFront() == null)
@@ -978,7 +1001,7 @@ class Kernel
 			{
 				System.out.println("Load Address is invalid.");
 			}
-      
+
 			break;
 
 
@@ -989,14 +1012,14 @@ class Kernel
 
 		case 36: // SW INT GET
 			int regs[] = pro.getReg();
-			
+
 			if(regs[1]==1 || regs[1]==2){
-				
+
 				aux = readyList.popFront();
 				graphicWindow.processLostCPU(aux.getPID());
 				System.out.println("GET");
 				aux.setMemoryAccessAddress(regs[0]);
-				
+
 				if (diskList[regs[1]].getFront() == null)
 					dis[regs[1]].roda(dis[regs[1]].OPERATION_READ,regs[0],0,0);
 
@@ -1015,7 +1038,7 @@ class Kernel
 		case 37: // SW INT PUT
 			int processRegs[] = pro.getReg();
 			if(processRegs[2]==1||processRegs[2]==2){
-				
+
 				aux = readyList.popFront();
 				graphicWindow.processLostCPU(aux.getPID());
 
