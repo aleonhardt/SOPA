@@ -346,7 +346,8 @@ class Memory
     }
   public synchronized void supervisorWrite(int address, int data)
   {
-	  if(address+baseRegister>memorySize)
+	  
+	   if(address+baseRegister>memorySize)
 	    {
 	    	hint.set(3); //endereço superior ao tamanho da memória
 	    }
@@ -486,7 +487,7 @@ class Disk extends Thread
   public int getError() { return errorCode; }
   public int getSize() { return readSize; }
   public int getData(int buffer_position) { return readData[buffer_position]; }
-		
+  public int getDiskSize() {return diskSize; }	
   // The thread that is the disk itself
   public void run()
     {
@@ -549,12 +550,12 @@ class Disk extends Thread
 	
   private void directMemoryAccess(int segment)//puts what is in the readData[] directly inside the memory
   {
-	 int baseRegiser = mem.getBaseRegister();//saves the pointer to the segment
+	 int baseRegister = mem.getBaseRegister();//saves the pointer to the segment
 	  mem.setBaseRegister(segment*Memory.SEGMENT_SIZE); 
 	  for (int i=0; i<readSize; i++)
-		  mem.supervisorWrite(0, readData[i]);
+		  mem.supervisorWrite(i, readData[i]);
 	  System.out.println("DMA");
-	  mem.setBaseRegister(baseRegiser);//restores pointer to the segment
+	  mem.setBaseRegister(baseRegister);//restores pointer to the segment
   }
   // this is to read disk initial image from a hosted text file
   private void load(String filename) throws IOException
@@ -837,16 +838,19 @@ int timeOnDisk =0;
       timeOnDisk=0;
       
       aux = diskList.getFront();
-      if(aux.getMemoryOperation() != -1)
+      if(aux != null)
       {
-    	  dis.roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), 0, aux.getMemorySegment());
-          aux.setMemoryOperation(-1);
+    	  if(aux.getMemoryOperation() != -1)
+          {
+        	  dis.roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), 0, aux.getMemorySegment());
+              aux.setMemoryOperation(-1);
+          }
+          else
+          {
+        	  System.out.println("Disk or DiskList FAILURE");
+          }
+    
       }
-      else
-      {
-    	  System.out.println("Disk or DiskList FAILURE");
-      }
-      
       break;
     
      
@@ -865,12 +869,13 @@ int timeOnDisk =0;
       //int whichDisk = Integer.parseInt(stringSplitter[0]);
       
       int startingAddress = Integer.parseInt(stringSplitter[1]);
-      if(startingAddress >= 0 && startingAddress <= dis.getSize())
+      if(startingAddress >= 0 && startingAddress <= dis.getDiskSize())
       {
     	  int memorySegment = mem.getFreeSegment();
     	  if(memorySegment >= 2 && memorySegment <= 7) 
 	      {
-	    	  ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment);
+	    	  System.out.println("Creating new process: PID: " + PIDCounter + " Memory Segment: " + memorySegment);
+    		  ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment);
 	          this.PIDCounter++;
 	          
 	          if (diskList.getFront() == null)
