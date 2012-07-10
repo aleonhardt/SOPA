@@ -868,7 +868,13 @@ int timeOnDisk =0;
       String stringSplitter[] = con.getLine().split(" ");
       //int whichDisk = Integer.parseInt(stringSplitter[0]);
       
-      int startingAddress = Integer.parseInt(stringSplitter[1]);
+      int startingAddress = -1;
+      
+      if (stringSplitter[1] != null)
+      {
+    	  startingAddress = Integer.parseInt(stringSplitter[1]);
+      }
+       
       if(startingAddress >= 0 && startingAddress <= dis.getDiskSize())
       {
     	  int memorySegment = mem.getFreeSegment();
@@ -900,6 +906,7 @@ int timeOnDisk =0;
       {
     	  System.out.println("Load Address is invalid.");
       }
+      
       break;
     
     
