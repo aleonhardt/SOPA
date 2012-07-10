@@ -753,7 +753,8 @@ class Processor extends Thread
 
 class Kernel
 {
-	int timeOnDisk =0;
+	int timeOnDiskOne =0;
+	int timeOnDiskTwo =0;
 	// Access to hardware components, including the processor
 	private IntController hint;
 	private Memory mem;
@@ -822,7 +823,9 @@ class Kernel
 				System.err.println("CPU now runs: "+readyList.getFront().getPID());
 				graphicWindow.processLostCPU(aux.getPID());
 				if(diskList[1].getFront()!=null)
-					timeOnDisk++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
+					timeOnDiskOne++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
+				if(diskList[2].getFront()!=null)
+					timeOnDiskTwo++;
 			}
 			else
 				aux.setTimeSlice(aux.getTimeSlice()-1);
@@ -848,8 +851,8 @@ class Kernel
 			aux = diskList[1].popFront();
 			aux.setTimeSlice(TIME_SLICE);
 			readyList.pushBack(aux);
-			graphicWindow.processDoneDisk(aux.getPID(), timeOnDisk);
-			timeOnDisk=0;
+			graphicWindow.processDoneDiskOne(aux.getPID(), timeOnDiskOne);
+			timeOnDiskOne=0;
 			
 			if(aux.getMemoryOperation()==dis[1].OPERATION_READ){
 				aux.getReg()[0]=dis[1].getData(0); //coloca o dado lido no reg0
@@ -948,41 +951,57 @@ class Kernel
 
 		case 36: // SW INT GET
 			int regs[] = pro.getReg();
-			aux = readyList.popFront();
-			graphicWindow.processLostCPU(aux.getPID());
-			System.out.println("GET");
-			aux.setMemoryAccessAddress(regs[0]);
 			
-			if (diskList.getFront() == null)
-				dis.roda(dis.OPERATION_READ,regs[0],0,0);
-			
-			aux.setMemoryOperation(dis.OPERATION_READ);
-			
-			aux.setMemoryAccessAddress(regs[0]);
-			diskList.pushBack(aux);
+			if(regs[1]==1 || regs[1]==2){
+				
+				aux = readyList.popFront();
+				graphicWindow.processLostCPU(aux.getPID());
+				System.out.println("GET");
+				aux.setMemoryAccessAddress(regs[0]);
+				
+				if (diskList[regs[1]].getFront() == null)
+					dis[regs[1]].roda(dis[regs[1]].OPERATION_READ,regs[0],0,0);
+
+
+				aux.setMemoryOperation(dis[regs[1]].OPERATION_READ);
+
+				aux.setMemoryAccessAddress(regs[0]);
+				diskList[regs[1]].pushBack(aux);
+			}
+			else
+			{
+				System.out.println("Invalid disk to GET");
+			}
 			break;
 
 		case 37: // SW INT PUT
 			int processRegs[] = pro.getReg();
-			aux = readyList.popFront();
-			graphicWindow.processLostCPU(aux.getPID());
-			
-			aux.setMemoryDataWrite(processRegs[1]);
-			System.out.println("PUT: "+processRegs[1]);
-			if (diskList.getFront() == null)
-			{
-				dis.roda(dis.OPERATION_WRITE,processRegs[0],processRegs[1],0);
-				       	  
+			if(processRegs[2]==1||processRegs[2]==2){
+				
+				aux = readyList.popFront();
+				graphicWindow.processLostCPU(aux.getPID());
+
+				aux.setMemoryDataWrite(processRegs[1]);
+				System.out.println("PUT: "+processRegs[1]);
+				if (diskList[processRegs[2]].getFront() == null)
+				{
+					dis[processRegs[2]].roda(dis[processRegs[2]].OPERATION_WRITE,processRegs[0],processRegs[1],0);
+
+				}
+				else
+				{
+					aux.setMemoryOperation(dis[processRegs[2]].OPERATION_WRITE);
+					aux.setMemoryAccessAddress(processRegs[0]);
+				}
+				aux.setMemoryOperation(dis[processRegs[2]].OPERATION_WRITE);
+				aux.setMemoryAccessAddress(processRegs[0]);
+				aux.setMemoryDataWrite(processRegs[1]);
+				diskList[processRegs[2]].pushBack(aux);
 			}
 			else
 			{
-				aux.setMemoryOperation(dis.OPERATION_WRITE);
-				aux.setMemoryAccessAddress(processRegs[0]);
+				System.out.println("Invalid disk to PUT");
 			}
-			aux.setMemoryOperation(dis.OPERATION_WRITE);
-			aux.setMemoryAccessAddress(processRegs[0]);
-			aux.setMemoryDataWrite(processRegs[1]);
-			diskList.pushBack(aux);
 			break;
 
 
