@@ -51,13 +51,15 @@ public class sopa
 		graphicWindow.initGraphicProcessWindow(graphicWindow);
 		Memory m	= new Memory(i,1024);
 		Timer t	= new Timer(i,gs);
-		Disk d	= new Disk(i,gs,m,1024,"disk.txt");
-		Processor p	= new Processor(i,gs,m,c,t,d, graphicWindow);
+		Disk d	= new Disk(1, i,gs,m,1024,"disk.txt");
+		Disk d2 = new Disk(2, i,gs,m,1024,"disk2.txt");
+		Processor p	= new Processor(i,gs,m,c,t,d, d2, graphicWindow);
 
 		// start all threads
 		p.start();
 		t.start();
 		d.start();
+		d2.start();
 		gs.start();
 	}
 }
@@ -446,8 +448,10 @@ class Disk extends Thread
 	public final int BUFFER_SIZE = 128;
 	public final int END_OF_FILE = 0xFFFFFFFF;
 	// Constructor
-	public Disk(IntController i, GlobalSynch gs, Memory m, int s, String name)
+	private int diskNumber;
+	public Disk(int n, IntController i, GlobalSynch gs, Memory m, int s, String name)
 	{
+		diskNumber = n;
 		hint = i;
 		synch = gs;
 		mem = m;
@@ -534,7 +538,10 @@ class Disk extends Thread
 				}
 			}		
 			// Here goes the code that generates an interrupt
-			hint.set(5);
+			if (diskNumber == 1)
+				hint.set(5);
+			if (diskNumber == 2)
+				hint.set(6);
 		}
 	}
 
@@ -585,6 +592,7 @@ class Processor extends Thread
 	private ConsoleListener con;
 	private Timer tim;
 	private Disk dis;
+	private Disk dis2;
 	// CPU internal components
 	private int PC;	// Program Counter
 	private int[] IR;	// Instruction Register
@@ -603,7 +611,7 @@ class Processor extends Thread
 	// Kernel is like a software in ROM
 	private Kernel kernel;
 	public Processor(IntController i, GlobalSynch gs, Memory m, ConsoleListener c, 
-			Timer t, Disk d, GraphicProcess graphicWindow)
+			Timer t, Disk d, Disk d2, GraphicProcess graphicWindow)
 	{
 		hint = i;
 		synch = gs;
@@ -611,11 +619,12 @@ class Processor extends Thread
 		con = c;
 		tim = t;
 		dis = d;
+		dis2 = d2;
 		PC = 0;
 		IR = new int[4];
 		reg = new int[16];
 		flag = new int[3];
-		kernel = new Kernel(i,m,c,t,d,this, graphicWindow);
+		kernel = new Kernel(i,m,c,t,d,d2,this, graphicWindow);
 	}
 	public void run()
 	{
@@ -752,22 +761,24 @@ class Kernel
 	private GraphicProcess graphicWindow;
 	private Timer tim;
 	private Disk dis;
+	private Disk dis2;
 	private Processor pro;
 	// Data used by the kernel
 	private ProcessList readyList;
 	private ProcessList diskList;
 	//My Data
-	private int PIDCounter = 10;
+	private int PIDCounter = 1;
 	public final static int TIME_SLICE = 8;
 	// In the constructor goes initialization code
 	public Kernel(IntController i, Memory m, ConsoleListener c, 
-			Timer t, Disk d, Processor p, GraphicProcess graphicWindow)
+			Timer t, Disk d, Disk d2, Processor p, GraphicProcess graphicWindow)
 	{
 		hint = i;
 		mem = m;
 		con = c;
 		tim = t;
 		dis = d;
+		dis2 = d2;
 		pro = p;
 		readyList = new ProcessList ("Ready");
 		diskList = new ProcessList ("Disk");
