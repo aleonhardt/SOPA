@@ -122,9 +122,9 @@ public class GraphicProcess extends JPanel {
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		JFrame frame = new JFrame("processGraphic");
 		Rectangle maxBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-		frame.setSize(maxBounds.width, 200); //maximiza na horizontal
+		frame.setSize(maxBounds.width-20, 200); //maximiza na horizontal
 		JScrollPane scrollPane=new JScrollPane(m);
-		scrollPane.setPreferredSize(new Dimension(maxBounds.width,200));
+		scrollPane.setPreferredSize(new Dimension(maxBounds.width-20,200));
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
 		frame.add(scrollPane);  
@@ -132,7 +132,7 @@ public class GraphicProcess extends JPanel {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		
-		frame.setLocationRelativeTo(null);
+		frame.setLocation(10, maxBounds.height-220);
 		frame.pack();
 		frame.setVisible(true);
 	}
