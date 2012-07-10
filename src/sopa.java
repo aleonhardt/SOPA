@@ -823,54 +823,91 @@ int timeOnDisk =0;
     	mem.freeMemorySegment(aux.getMemorySegment());
     	System.out.println("Process "+ aux.getPID() +" killed for illegal memory access, pc="+aux.getPC());
     	break;
+    
+    
+    	
+    	
+    	
+    	
     case 5: // HW INT disk 
       aux = diskList.popFront();
       readyList.pushBack(aux);
+      
       graphicWindow.processDoneDisk(aux.getPID(), timeOnDisk);
       timeOnDisk=0;
-      break;
-    case 15: // HW INT console
-
-      System.err.println("Operator typed " + con.getLine());
       
-      /*
-      //TESTE ALESSANDRA
-      if(con.getLine().equals("load"))
+      aux = diskList.getFront();
+      if(aux.getMemoryOperation() != -1)
       {
-    	  dis.roda(dis.OPERATION_LOAD, 0, 0, 1);
-      }
-      //FIM DO TESTE
-      */
-
-      //Creates new process on console command.
-      String stringSplitter[] = con.getLine().split(" ");
-      //int whichDisk = Integer.parseInt(stringSplitter[0]);
-      int startingAddress = Integer.parseInt(stringSplitter[1]);
-      
-      int memorySegment = mem.getFreeSegment();
-      if(memorySegment >= 2 && memorySegment <= 7)
-      {
-    	  ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment);
-          this.PIDCounter++;
-          
-          if (diskList.getFront() == null)
-          {
-        	  dis.roda(dis.OPERATION_LOAD, startingAddress, 0, memorySegment);
-        	  newProc.setMemoryOperation(-1);        	  
-          }
-          else
-          {
-        	  newProc.setMemoryOperation(dis.OPERATION_LOAD);
-          }
-          diskList.pushBack(newProc);
-                    
+    	  dis.roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), 0, aux.getMemorySegment());
+          aux.setMemoryOperation(-1);
       }
       else
       {
-    	  System.out.println("Memory is stuffed.");
+    	  System.out.println("Disk or DiskList FAILURE");
       }
-    	  
+      
       break;
+    
+     
+      
+      
+      
+      
+      
+      
+      
+      
+    case 15: // HW INT console
+
+      //System.err.println("Operator typed " + con.getLine());
+      String stringSplitter[] = con.getLine().split(" ");
+      //int whichDisk = Integer.parseInt(stringSplitter[0]);
+      
+      int startingAddress = Integer.parseInt(stringSplitter[1]);
+      if(startingAddress >= 0 && startingAddress <= dis.getSize())
+      {
+    	  int memorySegment = mem.getFreeSegment();
+    	  if(memorySegment >= 2 && memorySegment <= 7) 
+	      {
+	    	  ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment);
+	          this.PIDCounter++;
+	          
+	          if (diskList.getFront() == null)
+	          {
+	        	  dis.roda(dis.OPERATION_LOAD, startingAddress, 0, memorySegment);
+	        	  newProc.setMemoryOperation(-1);        	  
+	          }
+	          else
+	          {
+	        	  newProc.setMemoryOperation(dis.OPERATION_LOAD);
+	          }
+	          newProc.setMemoryAccessAddress(startingAddress);
+	          diskList.pushBack(newProc);
+	                    
+	      }
+	      else
+	      {
+	    	  System.out.println("Memory is stuffed.");
+	      }
+      }
+      else
+      {
+    	  System.out.println("Load Address is invalid.");
+      }
+      break;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     case 36: // SW INT read
       aux = readyList.popFront();
       diskList.pushBack(aux);
@@ -911,19 +948,17 @@ class ProcessDescriptor
   private int PC;
   private int[] reg;
   private int memorySegment;
-  
   private ProcessDescriptor next;
+ 
   public int getPID() { return PID; }
   public int getMemorySegment() {
 	return memorySegment;
-}
+  }
   public void setMemorySegment(int memSegment)
   {
 	  this.memorySegment=memSegment;	  
   }
-  
-  
-  //Memory operations:
+    //Memory operations:
   //public final int OPERATION_READ = 0;
   //public final int OPERATION_WRITE = 1;
   //public final int OPERATION_LOAD = 2;
@@ -936,6 +971,16 @@ class ProcessDescriptor
   
   public int getMemoryOperation()
   { return this.memoryOperation; }
+  
+  private int memoryAccessAddress;
+  
+  public void setMemoryAccessAddress(int AccessAddress)
+  { this.memoryAccessAddress = AccessAddress; }
+  
+  public int getMemoryAccessAddress()
+  { return this.memoryAccessAddress; }
+  
+  
   //done
   
 
