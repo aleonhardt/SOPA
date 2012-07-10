@@ -51,13 +51,15 @@ public class sopa
 		graphicWindow.initGraphicProcessWindow(graphicWindow);
 		Memory m	= new Memory(i,1024);
 		Timer t	= new Timer(i,gs);
-		Disk d	= new Disk(i,gs,m,1024,"disk.txt");
-		Processor p	= new Processor(i,gs,m,c,t,d, graphicWindow);
+		Disk d	= new Disk(1, i,gs,m,1024,"disk.txt");
+		Disk d2 = new Disk(2, i,gs,m,1024,"disk2.txt");
+		Processor p	= new Processor(i,gs,m,c,t,d, d2, graphicWindow);
 
 		// start all threads
 		p.start();
 		t.start();
 		d.start();
+		d2.start();
 		gs.start();
 	}
 }
@@ -446,8 +448,10 @@ class Disk extends Thread
 	public final int BUFFER_SIZE = 128;
 	public final int END_OF_FILE = 0xFFFFFFFF;
 	// Constructor
-	public Disk(IntController i, GlobalSynch gs, Memory m, int s, String name)
+	private int diskNumber;
+	public Disk(int n, IntController i, GlobalSynch gs, Memory m, int s, String name)
 	{
+		diskNumber = n;
 		hint = i;
 		synch = gs;
 		mem = m;
@@ -534,7 +538,10 @@ class Disk extends Thread
 				}
 			}		
 			// Here goes the code that generates an interrupt
-			hint.set(5);
+			if (diskNumber == 1)
+				hint.set(5);
+			if (diskNumber == 2)
+				hint.set(6);
 		}
 	}
 
@@ -585,6 +592,7 @@ class Processor extends Thread
 	private ConsoleListener con;
 	private Timer tim;
 	private Disk dis;
+	private Disk dis2;
 	// CPU internal components
 	private int PC;	// Program Counter
 	private int[] IR;	// Instruction Register
@@ -603,7 +611,7 @@ class Processor extends Thread
 	// Kernel is like a software in ROM
 	private Kernel kernel;
 	public Processor(IntController i, GlobalSynch gs, Memory m, ConsoleListener c, 
-			Timer t, Disk d, GraphicProcess graphicWindow)
+			Timer t, Disk d, Disk d2, GraphicProcess graphicWindow)
 	{
 		hint = i;
 		synch = gs;
@@ -611,11 +619,12 @@ class Processor extends Thread
 		con = c;
 		tim = t;
 		dis = d;
+		dis2 = d2;
 		PC = 0;
 		IR = new int[4];
 		reg = new int[16];
 		flag = new int[3];
-		kernel = new Kernel(i,m,c,t,d,this, graphicWindow);
+		kernel = new Kernel(i,m,c,t,d,d2,this, graphicWindow);
 	}
 	public void run()
 	{
@@ -751,26 +760,30 @@ class Kernel
 	private ConsoleListener con;
 	private GraphicProcess graphicWindow;
 	private Timer tim;
-	private Disk dis;
+	private Disk[] dis = new Disk[3];
 	private Processor pro;
 	// Data used by the kernel
 	private ProcessList readyList;
-	private ProcessList diskList;
+	private ProcessList[] diskList = new ProcessList[2];
 	//My Data
-	private int PIDCounter = 10;
+	private int PIDCounter = 1;
 	public final static int TIME_SLICE = 8;
 	// In the constructor goes initialization code
 	public Kernel(IntController i, Memory m, ConsoleListener c, 
-			Timer t, Disk d, Processor p, GraphicProcess graphicWindow)
+			Timer t, Disk d, Disk d2, Processor p, GraphicProcess graphicWindow)
 	{
 		hint = i;
 		mem = m;
 		con = c;
 		tim = t;
-		dis = d;
+		dis[0] = null;
+		dis[1] = d;
+		dis[2] = d2;
 		pro = p;
 		readyList = new ProcessList ("Ready");
-		diskList = new ProcessList ("Disk");
+		diskList[0] = null;
+		diskList[1] = new ProcessList ("Disk");
+		diskList[2] = new ProcessList ("Disk2");
 		this.graphicWindow=graphicWindow;
 		// Creates the dummy process
 		int segment = 0;
@@ -808,7 +821,7 @@ class Kernel
 				readyList.pushBack(aux);
 				System.err.println("CPU now runs: "+readyList.getFront().getPID());
 				graphicWindow.processLostCPU(aux.getPID());
-				if(diskList.getFront()!=null)
+				if(diskList[1].getFront()!=null)
 					timeOnDisk++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
 			}
 			else
@@ -832,37 +845,37 @@ class Kernel
 
 		case 5: // HW INT disk 
 			System.out.println("disk INT");
-			aux = diskList.popFront();
+			aux = diskList[1].popFront();
 			aux.setTimeSlice(TIME_SLICE);
 			readyList.pushBack(aux);
 			graphicWindow.processDoneDisk(aux.getPID(), timeOnDisk);
 			timeOnDisk=0;
 			
-			if(aux.getMemoryOperation()==dis.OPERATION_READ){
-				aux.getReg()[0]=dis.getData(0); //coloca o dado lido no reg0
+			if(aux.getMemoryOperation()==dis[1].OPERATION_READ){
+				aux.getReg()[0]=dis[1].getData(0); //coloca o dado lido no reg0
 				aux.getReg()[1]=0; //por enquanto dá sempre tudo certo
 				System.out.println("read: "+aux.getReg()[0]);
 			}
 			
-			if(aux.getMemoryOperation()==dis.OPERATION_WRITE){
+			if(aux.getMemoryOperation()==dis[1].OPERATION_WRITE){
 				aux.getReg()[0]=0; 	 //por enquanto dá sempre tudo certo
 			}
 			
 
-			aux = diskList.getFront();
+			aux = diskList[1].getFront();
       if(aux != null)
       {
 			if(aux.getMemoryOperation() != -1)
 			{
 				int dataToBeWritten=0;
-				if(aux.getMemoryOperation()==dis.OPERATION_WRITE)
+				if(aux.getMemoryOperation()==dis[1].OPERATION_WRITE)
 					dataToBeWritten=aux.getDataWriteMemory();
-				dis.roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), dataToBeWritten, aux.getMemorySegment());
+				dis[1].roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), dataToBeWritten, aux.getMemorySegment());
               aux.setMemoryOperation(-1);
           }
           else
           {
-        	  System.out.println("Disk or DiskList FAILURE");
+        	  System.out.println("disk or diskList[1] FAILURE");
           }
     
       }
@@ -880,17 +893,20 @@ class Kernel
 		case 15: // HW INT console
 
 			//System.err.println("Operator typed " + con.getLine());
-			String stringSplitter[] = con.getLine().split(" ");
-			//int whichDisk = Integer.parseInt(stringSplitter[0]);
-
-      int startingAddress = -1;
-
-    if (stringSplitter.length>1 && stringSplitter[1] != null)
-      {
-    	  startingAddress = Integer.parseInt(stringSplitter[1]);
-      }
-       
-      if(startingAddress >= 0 && startingAddress <= dis.getDiskSize())
+		  String stringSplitter[] = con.getLine().split(" ");
+		  int startingAddress = -1;
+	      int whichDisk = 0;
+	
+	      if (stringSplitter[0] != null)
+	      {
+	    	  whichDisk = Integer.parseInt(stringSplitter[0]);  
+	      }
+	      if (stringSplitter.length>1 && stringSplitter[1] != null)
+	      {
+	    	  startingAddress = Integer.parseInt(stringSplitter[1]);
+	      }
+	       
+	      if(startingAddress >= 0 && startingAddress <= dis[whichDisk].getDiskSize())
 			{
 				int memorySegment = mem.getFreeSegment();
 				if(memorySegment >= 2 && memorySegment <= 7) 
@@ -899,17 +915,17 @@ class Kernel
     		  ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment, TIME_SLICE);
 					this.PIDCounter++;
 
-					if (diskList.getFront() == null)
+					if (diskList[whichDisk].getFront() == null)
 					{
-						dis.roda(dis.OPERATION_LOAD, startingAddress, 0, memorySegment);
+						dis[whichDisk].roda(dis[whichDisk].OPERATION_LOAD, startingAddress, 0, memorySegment);
 						newProc.setMemoryOperation(-1);        	  
 					}
 					else
 					{
-						newProc.setMemoryOperation(dis.OPERATION_LOAD);
+						newProc.setMemoryOperation(dis[whichDisk].OPERATION_LOAD);
 					}
 					newProc.setMemoryAccessAddress(startingAddress);
-					diskList.pushBack(newProc);
+					diskList[whichDisk].pushBack(newProc);
 
 				}
 				else
