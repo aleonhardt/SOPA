@@ -12,16 +12,16 @@ Com processos fixos (>3, e parte da gerência de memória) 1.0 pontos OK
 
 Carga de Processo:
 
-Através da INT 15 (toda a gerência de memória) 1.0 pontos
+Através da INT 15 (toda a gerência de memória) 1.0 pontos OK
 
-Fila do disco ok 1.0 pontos
+Fila do disco ok 1.0 pontos  OK
 
 
 
 
 Acesso a Disco (INT 36 e 37) e File System:
 
-Acesso com GET/PUT/LOAD 1.0 pontos
+Acesso com GET/PUT/LOAD 1.0 pontos OK
 
 Operações OPEN/CLOSE 1.0 pontos
 
@@ -30,7 +30,7 @@ Operações OPEN/CLOSE 1.0 pontos
 
 Timer e Memória:
 
-Fazer o kernel controlar tempo dos processos 1.0 pontos OK [I guess]
+Fazer o kernel controlar tempo dos processos 1.0 pontos OK 
 
 Matar processo por acesso ilegal  1.0 pontos OK
 
