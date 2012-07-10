@@ -808,12 +808,13 @@ class Kernel
 				readyList.pushBack(aux);
 				System.err.println("CPU now runs: "+readyList.getFront().getPID());
 				graphicWindow.processLostCPU(aux.getPID());
+				if(diskList.getFront()!=null)
+					timeOnDisk++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
 			}
 			else
 				aux.setTimeSlice(aux.getTimeSlice()-1);
 			
-			if(diskList.getFront()!=null)
-				timeOnDisk++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
+			
 			//creates new process (dummy):
 			//createDummy();
 
@@ -830,6 +831,7 @@ class Kernel
 
 
 		case 5: // HW INT disk 
+			System.out.println("disk INT");
 			aux = diskList.popFront();
 			aux.setTimeSlice(TIME_SLICE);
 			readyList.pushBack(aux);
@@ -839,6 +841,7 @@ class Kernel
 			if(aux.getMemoryOperation()==dis.OPERATION_READ){
 				aux.getReg()[0]=dis.getData(0); //coloca o dado lido no reg0
 				aux.getReg()[1]=0; //por enquanto dá sempre tudo certo
+				System.out.println("read: "+aux.getReg()[0]);
 			}
 			
 			if(aux.getMemoryOperation()==dis.OPERATION_WRITE){
@@ -881,8 +884,8 @@ class Kernel
 			//int whichDisk = Integer.parseInt(stringSplitter[0]);
 
       int startingAddress = -1;
-      
-      if (stringSplitter[1] != null)
+
+    if (stringSplitter.length>1 && stringSplitter[1] != null)
       {
     	  startingAddress = Integer.parseInt(stringSplitter[1]);
       }
@@ -930,18 +933,15 @@ class Kernel
 		case 36: // SW INT GET
 			int regs[] = pro.getReg();
 			aux = readyList.popFront();
-
+			graphicWindow.processLostCPU(aux.getPID());
+			System.out.println("GET");
 			aux.setMemoryAccessAddress(regs[0]);
-			diskList.pushBack(aux);
+			
 			if (diskList.getFront() == null)
-			{
 				dis.roda(dis.OPERATION_READ,regs[0],0,0);
-				aux.setMemoryOperation(-1);        	  
-			}
-			else
-			{
-				aux.setMemoryOperation(dis.OPERATION_READ);
-			}
+			
+			aux.setMemoryOperation(dis.OPERATION_READ);
+			
 			aux.setMemoryAccessAddress(regs[0]);
 			diskList.pushBack(aux);
 			break;
@@ -949,19 +949,21 @@ class Kernel
 		case 37: // SW INT PUT
 			int processRegs[] = pro.getReg();
 			aux = readyList.popFront();
-
+			graphicWindow.processLostCPU(aux.getPID());
+			
 			aux.setMemoryDataWrite(processRegs[1]);
-			diskList.pushBack(aux);
+			System.out.println("PUT: "+processRegs[1]);
 			if (diskList.getFront() == null)
 			{
 				dis.roda(dis.OPERATION_WRITE,processRegs[0],processRegs[1],0);
-				aux.setMemoryOperation(-1);        	  
+				       	  
 			}
 			else
 			{
 				aux.setMemoryOperation(dis.OPERATION_WRITE);
 				aux.setMemoryAccessAddress(processRegs[0]);
 			}
+			aux.setMemoryOperation(dis.OPERATION_WRITE);
 			aux.setMemoryAccessAddress(processRegs[0]);
 			aux.setMemoryDataWrite(processRegs[1]);
 			diskList.pushBack(aux);
