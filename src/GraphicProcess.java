@@ -17,6 +17,7 @@ public class GraphicProcess extends JPanel {
 
 	private Color[] color= new Color[MAX_SIZE];
 	private Rectangle2D.Float[] myRect = new Rectangle2D.Float[MAX_SIZE] ;
+	private JLabel [] PIDlabel = new JLabel[MAX_SIZE];
 	JLabel CPU;
 	JLabel Disk;
 	int size=0;
@@ -35,6 +36,7 @@ public class GraphicProcess extends JPanel {
 	public GraphicProcess() {
 		Arrays.fill(color, null);
 		Arrays.fill(myRect, null);
+		Arrays.fill(PIDlabel, null);
 		CPU = new JLabel("CPU");
 		Disk = new JLabel("Disk");
 		add(CPU);
@@ -52,8 +54,11 @@ public class GraphicProcess extends JPanel {
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 		for(int i=0; i<size; i++)
 		{	
+			
 			g2d.setColor(color[i]);
 			g2d.fill(myRect[i]);
+			add(PIDlabel[i]);
+			repaint();
 		}
 		
 	}
@@ -66,10 +71,12 @@ public class GraphicProcess extends JPanel {
 		this.color[index] = color;
 		repaint();
 	}
-	public void addRect( int x, int y, int length, Color color)
+	public void addRect( int x, int y, int length, Color color, int PID)
 	{
 		myRect[size]=new Rectangle2D.Float(x, y, length, WIDTH);
 		this.color[size]= color;
+		PIDlabel[size]= new JLabel(String.valueOf(PID));
+		PIDlabel[size].setBounds(x+10, y-30, 40, 40);
 		size++;
 		repaint();
 	}
@@ -80,7 +87,7 @@ public class GraphicProcess extends JPanel {
 	}
 	public void processLostCPU (int PID)
 	{
-		addRect(lastXCPU, CPU_Y, TICK_LENGTH, getPIDcolor(PID));
+		addRect(lastXCPU, CPU_Y, TICK_LENGTH, getPIDcolor(PID), PID);
 		lastXCPU+=TICK_LENGTH;
 	}
 
@@ -105,7 +112,7 @@ public class GraphicProcess extends JPanel {
 	}
 	public void processDoneDisk (int PID, int ticks)
 	{
-		addRect(lastXDisk, DISK_Y, TICK_LENGTH*ticks, getPIDcolor(PID));
+		addRect(lastXDisk, DISK_Y, TICK_LENGTH*ticks, getPIDcolor(PID), PID);
 		lastXDisk+=(TICK_LENGTH*ticks);
 	
 	}

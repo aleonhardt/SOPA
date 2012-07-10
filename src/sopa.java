@@ -392,7 +392,7 @@ class Timer extends Thread
   private IntController hint;
   private GlobalSynch synch;
   private int counter = 0;
-  private int slice = 5;
+  private int slice = 8;
   public Timer(IntController i, GlobalSynch gs)
     {
     hint = i;
@@ -496,7 +496,7 @@ class Disk extends Thread
       // wait for some request comming from the processor
       sem.P();
       // Processor requested: now I have something to do...
-      for (int i=0; i < 20; ++i)
+      for (int i=0; i < 30; ++i) //disco demora tempo de 30 instruções para responder
         {
         // sleep just one quantum which is one disc turn here
         synch.mysleep(1);
@@ -815,11 +815,12 @@ int timeOnDisk =0;
       if(diskList.getFront()!=null)
     	  timeOnDisk++;		//conta quanto tempo um processo está usando o disco, para mostrar no gráfico
       //creates new process (dummy):
-      createDummy();
+      //createDummy();
             
       break;
     case 3: //acesso ilegal a memória
     	aux = readyList.popFront(); //mata o processo
+    	mem.freeMemorySegment(aux.getMemorySegment());
     	System.out.println("Process "+ aux.getPID() +" killed for illegal memory access, pc="+aux.getPC());
     	break;
     case 5: // HW INT disk 
