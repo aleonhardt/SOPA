@@ -765,7 +765,7 @@ class Kernel
 	private Processor pro;
 	// Data used by the kernel
 	private ProcessList readyList;
-	private ProcessList[] diskList = new ProcessList[2];
+	private ProcessList[] diskList = new ProcessList[3];
 	//My Data
 	private int PIDCounter = 1;
 	public final static int TIME_SLICE = 8;
@@ -853,39 +853,77 @@ class Kernel
 			readyList.pushBack(aux);
 			graphicWindow.processDoneDiskOne(aux.getPID(), timeOnDiskOne);
 			timeOnDiskOne=0;
-			
+
 			if(aux.getMemoryOperation()==dis[1].OPERATION_READ){
 				aux.getReg()[0]=dis[1].getData(0); //coloca o dado lido no reg0
 				aux.getReg()[1]=0; //por enquanto dá sempre tudo certo
 				System.out.println("read: "+aux.getReg()[0]);
 			}
-			
+
 			if(aux.getMemoryOperation()==dis[1].OPERATION_WRITE){
 				aux.getReg()[0]=0; 	 //por enquanto dá sempre tudo certo
 			}
-			
+
 
 			aux = diskList[1].getFront();
-      if(aux != null)
-      {
-			if(aux.getMemoryOperation() != -1)
+			if(aux != null)
 			{
-				int dataToBeWritten=0;
-				if(aux.getMemoryOperation()==dis[1].OPERATION_WRITE)
-					dataToBeWritten=aux.getDataWriteMemory();
-				dis[1].roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), dataToBeWritten, aux.getMemorySegment());
-              aux.setMemoryOperation(-1);
-          }
-          else
-          {
-        	  System.out.println("disk or diskList[1] FAILURE");
-          }
-    
-      }
+				if(aux.getMemoryOperation() != -1)
+				{
+					int dataToBeWritten=0;
+					if(aux.getMemoryOperation()==dis[1].OPERATION_WRITE)
+						dataToBeWritten=aux.getDataWriteMemory();
+					dis[1].roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), dataToBeWritten, aux.getMemorySegment());
+					aux.setMemoryOperation(-1);
+				}
+				else
+				{
+					System.out.println("disk or diskList[1] FAILURE");
+				}
+
+			}
+			break;
+			
+		case 6: // HW INT disk 
+			System.out.println("disk2 INT");
+			aux = diskList[2].popFront();
+			aux.setTimeSlice(TIME_SLICE);
+			readyList.pushBack(aux);
+			graphicWindow.processDoneDiskTwo(aux.getPID(), timeOnDiskTwo);
+			timeOnDiskTwo=0;
+
+			if(aux.getMemoryOperation()==dis[2].OPERATION_READ){
+				aux.getReg()[0]=dis[2].getData(0); //coloca o dado lido no reg0
+				aux.getReg()[1]=0; //por enquanto dá sempre tudo certo
+				System.out.println("read: "+aux.getReg()[0]);
+			}
+
+			if(aux.getMemoryOperation()==dis[2].OPERATION_WRITE){
+				aux.getReg()[0]=0; 	 //por enquanto dá sempre tudo certo
+			}
+
+
+			aux = diskList[2].getFront();
+			if(aux != null)
+			{
+				if(aux.getMemoryOperation() != -1)
+				{
+					int dataToBeWritten=0;
+					if(aux.getMemoryOperation()==dis[2].OPERATION_WRITE)
+						dataToBeWritten=aux.getDataWriteMemory();
+					dis[2].roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), dataToBeWritten, aux.getMemorySegment());
+					aux.setMemoryOperation(-1);
+				}
+				else
+				{
+					System.out.println("disk or diskList[2] FAILURE");
+				}
+
+			}
 			break;
 
 
-
+	   
 
 
 
