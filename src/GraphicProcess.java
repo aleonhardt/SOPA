@@ -22,9 +22,9 @@ public class GraphicProcess extends JPanel {
 	JLabel Disk1;
 	JLabel Disk2;
 	int size=0;
-	int lastXCPU=30;
-	int lastXDisk1=30;
-	int lastXDisk2=30;
+	int lastXCPU=35;
+	int lastXDisk1=35;
+	int lastXDisk2=35;
 	int PID_CPU=-1;
 	int PID_DISK=-1;
 	public static final int MAX_SIZE=200;
