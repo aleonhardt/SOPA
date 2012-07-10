@@ -346,7 +346,8 @@ class Memory
 	}
 	public synchronized void supervisorWrite(int address, int data)
 	{
-		if(address+baseRegister>memorySize)
+	  
+	   if(address+baseRegister>memorySize)
 		{
 			hint.set(3); //endereço superior ao tamanho da memória
 		}
@@ -476,7 +477,7 @@ class Disk extends Thread
 	public int getError() { return errorCode; }
 	public int getSize() { return readSize; }
 	public int getData(int buffer_position) { return readData[buffer_position]; }
-
+  public int getDiskSize() {return diskSize; }	
 	// The thread that is the disk itself
 	public void run()
 	{
@@ -539,12 +540,13 @@ class Disk extends Thread
 
 	private void directMemoryAccess(int segment)//puts what is in the readData[] directly inside the memory
 	{
-		int baseRegiser = mem.getBaseRegister();//saves the pointer to the segment
+	 int baseRegister = mem.getBaseRegister();//saves the pointer to the segment
 		mem.setBaseRegister(segment*Memory.SEGMENT_SIZE); 
 		for (int i=0; i<readSize; i++)
-			mem.supervisorWrite(0, readData[i]);
+		  mem.supervisorWrite(i, readData[i]);
 		System.out.println("DMA");
-		mem.setBaseRegister(baseRegiser);//restores pointer to the segment
+		
+	  mem.setBaseRegister(baseRegister);//restores pointer to the segment
 	}
 	// this is to read disk initial image from a hosted text file
 	private void load(String filename) throws IOException
@@ -845,19 +847,22 @@ class Kernel
 			
 
 			aux = diskList.getFront();
+      if(aux != null)
+      {
 			if(aux.getMemoryOperation() != -1)
 			{
 				int dataToBeWritten=0;
 				if(aux.getMemoryOperation()==dis.OPERATION_WRITE)
 					dataToBeWritten=aux.getDataWriteMemory();
 				dis.roda(aux.getMemoryOperation(), aux.getMemoryAccessAddress(), dataToBeWritten, aux.getMemorySegment());
-				aux.setMemoryOperation(-1);
-			}
-			else
-			{
-				System.out.println("Disk or DiskList FAILURE");
-			}
-
+              aux.setMemoryOperation(-1);
+          }
+          else
+          {
+        	  System.out.println("Disk or DiskList FAILURE");
+          }
+    
+      }
 			break;
 
 
@@ -875,13 +880,20 @@ class Kernel
 			String stringSplitter[] = con.getLine().split(" ");
 			//int whichDisk = Integer.parseInt(stringSplitter[0]);
 
-			int startingAddress = Integer.parseInt(stringSplitter[1]);
-			if(startingAddress >= 0 && startingAddress <= dis.getSize())
+      int startingAddress = -1;
+      
+      if (stringSplitter[1] != null)
+      {
+    	  startingAddress = Integer.parseInt(stringSplitter[1]);
+      }
+       
+      if(startingAddress >= 0 && startingAddress <= dis.getDiskSize())
 			{
 				int memorySegment = mem.getFreeSegment();
 				if(memorySegment >= 2 && memorySegment <= 7) 
 				{
-					ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment, TIME_SLICE);
+	    	  System.out.println("Creating new process: PID: " + PIDCounter + " Memory Segment: " + memorySegment);
+    		  ProcessDescriptor newProc = new ProcessDescriptor(PIDCounter, memorySegment, TIME_SLICE);
 					this.PIDCounter++;
 
 					if (diskList.getFront() == null)
@@ -906,6 +918,7 @@ class Kernel
 			{
 				System.out.println("Load Address is invalid.");
 			}
+      
 			break;
 
 
