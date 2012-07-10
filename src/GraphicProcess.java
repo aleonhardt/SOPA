@@ -19,15 +19,18 @@ public class GraphicProcess extends JPanel {
 	private Rectangle2D.Float[] myRect = new Rectangle2D.Float[MAX_SIZE] ;
 	private JLabel [] PIDlabel = new JLabel[MAX_SIZE];
 	JLabel CPU;
-	JLabel Disk;
+	JLabel Disk1;
+	JLabel Disk2;
 	int size=0;
 	int lastXCPU=30;
-	int lastXDisk=30;
+	int lastXDisk1=30;
+	int lastXDisk2=30;
 	int PID_CPU=-1;
 	int PID_DISK=-1;
 	public static final int MAX_SIZE=200;
 	public static final int CPU_Y=40;
-	public static final int DISK_Y=100;
+	public static final int DISK1_Y=100;
+	public static final int DISK2_Y=160;
 	public static final int WIDTH=20;
 	public static final int TICK_LENGTH=30;
 
@@ -38,16 +41,19 @@ public class GraphicProcess extends JPanel {
 		Arrays.fill(myRect, null);
 		Arrays.fill(PIDlabel, null);
 		CPU = new JLabel("CPU");
-		Disk = new JLabel("Disk");
+		Disk1 = new JLabel("Disk1");
+		Disk2 = new JLabel("Disk2");
 		add(CPU);
-		add(Disk);
+		add(Disk1);
+		add(Disk2);
 		
 	}
 
 	public void paint(Graphics g) {
 		super.paint(g);
 		CPU.setBounds(0, CPU_Y-10, 40, 40);
-		Disk.setBounds(0, DISK_Y-10, 40, 40);
+		Disk1.setBounds(0, DISK1_Y-10, 40, 40);
+		Disk2.setBounds(0, DISK2_Y-10, 40, 40);
 		
 		Graphics2D g2d = (Graphics2D) g;
 		g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -106,14 +112,25 @@ public class GraphicProcess extends JPanel {
 		}
 	}
 
-	public void processOnDisk(int PID)
+	public void processOnDiskOne(int PID)
 	{
 		PID_DISK=PID;
 	}
-	public void processDoneDisk (int PID, int ticks)
+	public void processDoneDiskOne (int PID, int ticks)
 	{
-		addRect(lastXDisk, DISK_Y, TICK_LENGTH*ticks, getPIDcolor(PID), PID);
-		lastXDisk+=(TICK_LENGTH*ticks);
+		addRect(lastXDisk1, DISK1_Y, TICK_LENGTH*ticks, getPIDcolor(PID), PID);
+		lastXDisk1+=(TICK_LENGTH*ticks);
+	
+	}
+	
+	public void processOnDiskTwo(int PID)
+	{
+		PID_DISK=PID;
+	}
+	public void processDoneDiskTwo (int PID, int ticks)
+	{
+		addRect(lastXDisk2, DISK2_Y, TICK_LENGTH*ticks, getPIDcolor(PID), PID);
+		lastXDisk2+=(TICK_LENGTH*ticks);
 	
 	}
 
@@ -122,9 +139,9 @@ public class GraphicProcess extends JPanel {
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		JFrame frame = new JFrame("processGraphic");
 		Rectangle maxBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-		frame.setSize(maxBounds.width-20, 200); //maximiza na horizontal
+		frame.setSize(maxBounds.width-20, 300); //maximiza na horizontal
 		JScrollPane scrollPane=new JScrollPane(m);
-		scrollPane.setPreferredSize(new Dimension(maxBounds.width-20,200));
+		scrollPane.setPreferredSize(new Dimension(maxBounds.width-20,300));
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
 		frame.add(scrollPane);  
